@@ -12,10 +12,78 @@ import { WebBrowser } from 'expo';
 
 import { MonoText } from '../components/StyledText';
 
+import {PermissionsAndroid} from 'react-native';
+
+async function requestGpsPermission() {
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.CAMERA,
+      {
+        title: 'Test permission',
+        message: 'We need access to your camera',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      },
+    );
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      console.log('You can use the GPS fine location');
+    } else if (granted === PermissionsAndroid.RESULTS.DENIED) {
+      console.log('GPS fine location permission denied');
+    } else {
+      console.log('GPS fine location denied with "Never Ask Again"');
+    }
+  } catch (err) {
+    console.warn(err);
+  }
+}
+
+async function getLocationAsync() {
+  const { Location, Permissions } = Expo;
+  // permissions returns only for location permissions on iOS and under certain conditions, see Permissions.LOCATION
+  const { status, permissions } = await Permissions.askAsync(Permissions.LOCATION);
+  if (status === 'granted') {
+    return Location.getCurrentPositionAsync({enableHighAccuracy: true});
+  } else {
+    throw new Error('Location permission not granted');
+  }
+}
+
 export default class HomeScreen extends React.Component {
   static navigationOptions = {
     header: null,
   };
+
+  constructor(props) {
+    super(props);
+  
+    this.state = {
+      latitude: 33,
+      longitude: 44
+    }
+  }
+
+  getCurrentPosition = (args) => {
+    navigator.geolocation.getCurrentPosition(this.getCurrentPositionSuccess, this.getCurrentPositionError);
+  }
+
+  componentDidMount() {
+    requestGpsPermission()
+  }
+
+  getCurrentPositionSuccess = (data) => {
+    console.log('getCurrentPositionSuccess')
+    console.log(data)
+    this.setState({
+      latitude: data.coords.latitude,
+      longitude: data.coords.longitude
+    });
+  }
+
+  getCurrentPositionError = (args) => {
+    console.log('getCurrentPositionError')
+    console.log(args)
+  }
 
   render() {
     return (
@@ -33,23 +101,15 @@ export default class HomeScreen extends React.Component {
           </View>
 
           <View style={styles.getStartedContainer}>
-            {this._maybeRenderDevelopmentModeWarning()}
-
-            <Text style={styles.getStartedText}>Get started by opening</Text>
-
-            <View style={[styles.codeHighlightContainer, styles.homeScreenFilename]}>
-              <MonoText style={styles.codeHighlightText}>screens/HomeScreen.js</MonoText>
-            </View>
-
             <Text style={styles.getStartedText}>
-              Change this text and your app will automatically reload.
+              User's location is:
             </Text>
-          </View>
-
-          <View style={styles.helpContainer}>
-            <TouchableOpacity onPress={this._handleHelpPress} style={styles.helpLink}>
-              <Text style={styles.helpLinkText}>Help, it didn’t automatically reload!</Text>
-            </TouchableOpacity>
+            <Text style={styles.getStartedText}>
+              Latitude: {this.state.latitude}
+            </Text>
+            <Text style={styles.getStartedText}>
+              Longitude: {this.state.longitude}
+            </Text>
           </View>
         </ScrollView>
 
@@ -62,29 +122,6 @@ export default class HomeScreen extends React.Component {
         </View>
       </View>
     );
-  }
-
-  _maybeRenderDevelopmentModeWarning() {
-    if (__DEV__) {
-      const learnMoreButton = (
-        <Text onPress={this._handleLearnMorePress} style={styles.helpLinkText}>
-          Learn more
-        </Text>
-      );
-
-      return (
-        <Text style={styles.developmentModeText}>
-          Development mode is enabled, your app will be slower but you can use useful development
-          tools. {learnMoreButton}
-        </Text>
-      );
-    } else {
-      return (
-        <Text style={styles.developmentModeText}>
-          You are not in development mode, your app will run at full speed.
-        </Text>
-      );
-    }
   }
 
   _handleLearnMorePress = () => {
