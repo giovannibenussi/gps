@@ -68,6 +68,8 @@ export default class HomeScreen extends React.Component {
   }
 
   componentDidMount() {
+    this.getCurrentPosition()
+    getLocationAsync()
     requestGpsPermission()
   }
 
